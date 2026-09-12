@@ -1,46 +1,58 @@
-import streamlit as st    # interface grafica 
-import pandas as pd       # tratamento de dados
-from sklearn.linear_model import LinearRegression # o tipo de treinamento do modelo
+"""
+Aplicação Web de Previsão de Vendas com Streamlit e TensorFlow.
+Autor: Especialista ML & Python
+Descrição: Interface interativa para análise exploratória de vendas e
+            previsão de séries temporais via Rede Neural Keras/TensorFlow.
+"""
+
+import streamlit as st
+import pandas as pd
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+
+# Configuração da página Streamlit
+st.set_page_config(
+    page_title="Previsão de Vendas com TensorFlow",
+    page_icon="📈",
+    layout="wide"
+)
 
 
-st.header('PREVISÃO DE VENDAS🗓️')
+@st.cache_data
+def carregar_dados_padrao() -> pd.DataFrame:
+    """Carrega dataset inicial via dicionário Python."""
+    dados_vendas = {
+        "Data": pd.date_range(start="2026-01-01", periods=12, freq="M"),
+        "Vendas_Unidades": [120, 135, 150, 160, 190, 210, 230, 250, 280, 300, 310, 340],
+        "Investimento_Mkt": [10, 12, 15, 14, 18, 20, 22, 25, 27, 30, 31, 35]
+    }
+    return pd.DataFrame(dados_vendas)
 
 
-dados_vendas = pd.DataFrame({
+def preparar_dados(vendas: np.ndarray, janela: int):
+    """Prepara as sequências de entrada (X) e alvo (y) para o modelo."""
+    X, y = [], []
+    for i in range(len(vendas) - janela):
+        X.append(vendas[i : i + janela])
+        y.append(vendas[i + janela])
+    return np.array(X, dtype=np.float32), np.array(y, dtype=np.float32)
 
 
-   'investimentos':[100,200,300,550,750,800],
-   'faturamento':[1200,2500,3700,3900,5500,6900]
-
-
-})
-
-
-st.write(dados_vendas)
-
-
-# treinar os dados 
-
-
-X = dados_vendas[['investimentos']]
-y = dados_vendas['faturamento']
-
-
-model = LinearRegression().fit(X,y) # treina o modelo com os dados
-
-
-investimento =  st.number_input('Digite o investimento', value = 150)
-
-
-if investimento:
-    if st.button('Analisar:'):
+def treinar_modelo_tensorflow(X: np.ndarray, y: np.ndarray, epocas: int) -> tf.keras.Model:
+    """Compila e treina uma rede neural de regressão."""
+    modelo = Sequential([
+        Dense(16, activation='relu', input_shape=(X.shape[1],)),
+        Dense(8, activation='relu'),
+        Dense(1)
+    ])
     
-        previsao = model.predict([[investimento]])[0] #previsão
-        st.write(f'Faturamento -  previsto R${previsao:.2f} **')# resultado
-
- 
-
+    modelo.compile(optimizer='adam', loss='mse', metrics=['mae'])
+    modelo.fit(X, y, epochs=epocas, verbose=0)
+    return modelo
 
 
-
-# analisar a previsão de vendas do mes de setembro
+def main():
+    st.title("📈 Dashboard de Previsão de Vendas com IA")
+    st.write("Aplicação interativa para análise exploratória e previsão via TensorFlow.")
